@@ -1,12 +1,13 @@
 # backend/app/utils.py
 from __future__ import annotations
-
 from pathlib import Path
 import configparser
+from configparser import RawConfigParser
 from typing import Dict, Any, List
+from pathlib import Path
 
 # Шлях до конфігу (backend/config.ini)
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.ini"
+CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.ini"
 
 
 # ---------- Базові утиліти для INI ----------
@@ -63,41 +64,57 @@ def get_base() -> Dict[str, Any]:
     }
 
 
-def set_base(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _read_cfg() -> RawConfigParser:
+    cfg = RawConfigParser(interpolation=None)
+    if CONFIG_PATH.exists():
+        cfg.read(CONFIG_PATH, encoding="utf-8")
+    return cfg
+
+def _write_cfg(cfg: RawConfigParser) -> None:
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with CONFIG_PATH.open("w", encoding="utf-8") as f:
+        cfg.write(f)
+
+def set_base(payload: dict) -> dict:
     """
-    Оновлює базовий блок у конфігу. Очікує ключі: rounding(str), price_high(int), price_low(int).
+    Очікуємо payload на кшталт:
+      { "rounding": "ceil10", "price_per_meter": {"high": 21101, "low": 18257} }
+    або:
+      { "rounding": "ceil10", "price_high": 21101, "price_low": 18257 }
+    Пишемо все у [base] ТІЛЬКИ як рядки.
     """
-    cfg = read_ini()
-    ensure_base(cfg)
-    base = cfg["base"]
+    cfg = _read_cfg()
+    if not cfg.has_section("base"):
+        cfg.add_section("base")
 
-    if "rounding" in payload and payload["rounding"]:
-        base["rounding"] = str(payload["rounding"])
+    rounding = str(payload.get("rounding") or payload.get("rounding_mode") or "ceil10")
 
-    if "price_high" in payload and payload["price_high"] is not None:
-        base["price_high"] = str(int(payload["price_high"]))
+    # приймаємо обидва варіанти ключів
+    ppm = payload.get("price_per_meter") or {}
+    high = payload.get("price_high", ppm.get("high", 21101))
+    low  = payload.get("price_low",  ppm.get("low",  18257))
 
-    if "price_low" in payload and payload["price_low"] is not None:
-        base["price_low"] = str(int(payload["price_low"]))
+    # конвертації у числа і ДАЛІ У РЯДКИ
+    try:
+        high = str(int(float(high)))
+    except Exception:
+        high = "21101"
+    try:
+        low = str(int(float(low)))
+    except Exception:
+        low = "18257"
 
-     # ---- синхронізуємо "variables" для калькулятора (бек-сов сумісність) ----
-    if "variables" not in cfg:
-        cfg["variables"] = {}
-    v = cfg["variables"]
-    # переносимо rounding
-    if "rounding" in cfg["base"]:
-        v["rounding"] = cfg["base"]["rounding"]
-    # переносимо ціни
-    if "price_per_meter" not in v:
-        v["price_per_meter"] = {}
-    vppm = v["price_per_meter"]
-    if "price_high" in cfg["base"]:
-        vppm["high"] = cfg["base"]["price_high"]
-    if "price_low" in cfg["base"]:
-        vppm["low"] = cfg["base"]["price_low"]
+    cfg.set("base", "rounding", rounding)
+    cfg.set("base", "price_high", high)
+    cfg.set("base", "price_low", low)
 
-    write_ini(cfg)
-    return get_base()
+    _write_cfg(cfg)
+
+    # вертаємо те, що очікує фронт
+    return {
+        "rounding": rounding,
+        "price_per_meter": {"high": int(high), "low": int(low)},
+    }
 
 
 # ---------- API «Групи категорій» ----------

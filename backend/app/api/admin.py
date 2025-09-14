@@ -12,7 +12,7 @@ ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")  # встановиш змінну с
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 def check_token(x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")):
-    # Dev-режим: якщо токен у середовищі НЕ заданий — пропускаємо перевірку
+    # Dev: якщо токен не заданий у середовищі — дозволяємо без хедера
     if not ADMIN_TOKEN:
         return
     if x_admin_token != ADMIN_TOKEN:

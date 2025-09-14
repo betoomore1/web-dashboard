@@ -109,10 +109,10 @@ export default function CalcPage() {
       }
       try {
         const res = await api.post<CalcOutput>('/api/calc/compute', {
-          length_mm: L,
-          width_mm: width,
-          height_mm: height,
-          position,
+          L: L,            // було length_mm
+          W: width,        // було width_mm
+          H: height,       // було height_mm
+          position,        // назва вибраної опції
         });
         setOut(res);
       } catch (e: any) {

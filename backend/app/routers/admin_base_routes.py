@@ -1,30 +1,19 @@
 # backend/app/routers/admin_base_routes.py
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Header
 import os
-
+from typing import Optional
 from ..utils import get_base, set_base  # <- ці ф-ції вже є в твоєму utils.py
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
-def admin_token_required(request: Request):
-    """
-    Пропускаємо, якщо заголовок містить коректний токен.
-    Підтримуємо і 'x-token', і 'x-admin-token'.
-    """
-    header_token = (
-        request.headers.get("x-token")
-        or request.headers.get("x-admin-token")
-        or request.headers.get("X-Token")
-        or request.headers.get("X-Admin-Token")
-    )
-
-    admin = os.getenv("ADMIN_TOKEN") or ""
-    if not header_token or header_token != admin:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing admin token",
-        )
+def admin_token_required(x_token: Optional[str] = Header(None, alias="X-Admin-Token")):
+    if not ADMIN_TOKEN:   # dev: без токена
+        return True
+    if x_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid or missing admin token")
+    return True
 
 
 @router.get("/base", dependencies=[Depends(admin_token_required)])

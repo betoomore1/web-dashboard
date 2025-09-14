@@ -7,7 +7,7 @@ from typing import Optional
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
 def admin_token_required(x_token: Optional[str] = Header(None, alias="X-Admin-Token")):
-    if not ADMIN_TOKEN:     # dev: токен не налаштований
+    if not ADMIN_TOKEN:   # dev: без токена
         return True
     if x_token != ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid or missing admin token")
