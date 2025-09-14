@@ -51,3 +51,8 @@ next-env.d.ts
 # === Vercel ===
 .vercel
 .env.local
+/web-dashboard/
+/web-dashboard.git/
+.env.local
+.venv/
+node_modules/
