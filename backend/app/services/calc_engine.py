@@ -20,7 +20,7 @@ def _round_ceil_10(x: float) -> int:
     return int(ceil(x / 10.0) * 10)
 
 def compute(payload):
-    # нормалізація
+    # нормалізуємо у dict
     if hasattr(payload, "model_dump"):
         payload = payload.model_dump()
     elif hasattr(payload, "dict"):
@@ -46,19 +46,9 @@ def compute(payload):
 
     subtotal = price_base + surcharge_width + surcharge_height
 
-    # назва опції може приходити в різних ключах
-    pos_key = (
-        payload.get("position")
-        or payload.get("color")
-        or payload.get("colors")
-        or ""
-    )
-    try:
-        pos_name = str(pos_key).strip()
-    except Exception:
-        pos_name = ""
-
-    percent = float(s.positions.get(pos_name, 0.0))
+    # назва вибраного кольору може лежати під 'position' / 'color'
+    pos_name = str(payload.get("position") or payload.get("color") or "").strip()
+    percent = float(s.positions.get(pos_name, 0.0))  # ← dict name→%
     surcharge_color_amount = subtotal * percent / 100.0
 
     raw_total = subtotal + surcharge_color_amount
@@ -74,5 +64,5 @@ def compute(payload):
         surcharge_height=round(surcharge_height, 2),
         surcharge_color_percent=percent,
         surcharge_color_amount=round(surcharge_color_amount, 2),
-        price_total=total,
+        price_total=int(total),
     )

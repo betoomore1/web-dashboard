@@ -350,13 +350,11 @@ def load_settings() -> SettingsDTO:
     base_ = _read_base(cfg)
     groups_ = _read_groups(cfg)
 
-    # serializable групи для фронту (dict)
     positions_map: dict[str, float] = {}
     for g in groups_:
-        if g.id == "colors":
-            for it in g.items:
-                positions_map[it.name] = float(it.value)
-    # і повертати positions=positions_map
+        if getattr(g, "id", None) == "colors":
+            for it in getattr(g, "items", []) or []:
+                positions_map[getattr(it, "name", "item")] = float(getattr(it, "value", 0))
 
     return SettingsDTO(
         min_length=vars_.min_length,
@@ -367,5 +365,5 @@ def load_settings() -> SettingsDTO:
         rounding_mode=base_.rounding,
         price_per_meter_high=base_.price_high,
         price_per_meter_low=base_.price_low,
-        positions=positions_map,
+        positions=positions_map,  # ← тепер завжди dict
     )
