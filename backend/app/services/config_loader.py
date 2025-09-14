@@ -19,8 +19,11 @@ from __future__ import annotations
 
 from configparser import RawConfigParser
 from dataclasses import dataclass, asdict
+import os
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+CONFIG_PATH = Path(os.getenv("CONFIG_PATH") or (Path(__file__).resolve().parents[2] / "config.ini"))
 
 # Шлях до backend/config.ini
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.ini"

@@ -16,6 +16,14 @@ app.add_middleware(
     allow_credentials=False,
 )
 
+FRONT_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")  # на проді постав точний домен фронта
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[FRONT_ORIGIN] if FRONT_ORIGIN != "*" else ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ---------- 3) Health ----------
 @app.get("/healthz")
 def healthz():
