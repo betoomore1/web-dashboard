@@ -40,7 +40,8 @@ def get_config():
 @router.post("/compute", response_model=CalcOutput)
 def post_compute(payload: CalcInput):
     try:
-        return compute(payload)
+        # було: return compute(payload)
+        return compute(payload.model_dump())  # <-- передаємо dict
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

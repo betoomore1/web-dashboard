@@ -19,11 +19,17 @@ def _round_nearest_10(x: float) -> int:
 def _round_ceil_10(x: float) -> int:
     return int(ceil(x / 10.0) * 10)
 
-def compute(payload: CalcInput) -> CalcOutput:
+def compute(payload):
+    # нормалізуємо в dict
+    if hasattr(payload, "model_dump"):
+        payload = payload.model_dump()
+    if isinstance(payload, list):
+        raise ValueError("payload must be object, not list")
+
     s = load_settings()
-    L = float(payload.length_mm)
-    W = int(payload.width_mm)
-    H = int(payload.height_mm)
+    L = int(payload.get("L") or payload.get("l") or 0)
+    W = int(payload.get("W") or payload.get("w") or 0)
+    H = int(payload.get("H") or payload.get("h") or 0)
 
     ppm = _interpolate_price_per_meter(L)
     price_base = round(ppm * L / 1000)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Header, HTTPException
 import os, configparser, csv
 from pathlib import Path
 from typing import Optional, Dict, Any
-from ..services.config_loader import load_settings
+from ..services.config_loader import load_settings, save_base
 from functools import lru_cache
 from pydantic import BaseModel
 
@@ -130,3 +130,23 @@ def upsert_position(p: Position):
 def delete_position(name: str):
     DB.pop(name, None)
     return {"ok": True}
+
+class BaseSave(BaseModel):
+    rounding: str
+    price_high: int | float | str
+    price_low: int | float | str
+
+@router.post("/base")
+def save_base_route(body: BaseSave):
+    try:
+        # у форму можуть прийти строки — нормалізуємо
+        ph = int(float(str(body.price_high).replace(',', '.')))
+        pl = int(float(str(body.price_low).replace(',', '.')))
+        s = save_base(body.rounding, ph, pl)
+        return {
+            "rounding": s.rounding,
+            "price_high": s.price_high,
+            "price_low":  s.price_low,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
