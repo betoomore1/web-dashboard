@@ -12,8 +12,9 @@ ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")  # встановиш змінну сер
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 def check_token(x_admin_token: Optional[str]):
+    # Dev-режим: якщо токен не заданий у середовищі — не блокуємо.
     if not ADMIN_TOKEN:
-        raise HTTPException(500, "ADMIN_TOKEN is not configured on the server")
+        return
     if x_admin_token != ADMIN_TOKEN:
         raise HTTPException(401, "Invalid admin token")
 

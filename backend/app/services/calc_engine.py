@@ -20,7 +20,7 @@ def _round_ceil_10(x: float) -> int:
     return int(ceil(x / 10.0) * 10)
 
 def compute(payload):
-    # нормалізуємо в dict
+    # 1) нормалізуємо в dict
     if hasattr(payload, "model_dump"):
         payload = payload.model_dump()
     elif hasattr(payload, "dict"):
@@ -30,16 +30,23 @@ def compute(payload):
 
     s = load_settings()
 
-    # дістаємо розміри з кількох можливих назв
+    # 2) читаємо розміри з кількох можливих назв (і з вкладеного 'dimensions', якщо є)
     def to_int(x, default=0):
         try:
             return int(float(str(x).replace(",", ".")))
         except Exception:
             return default
 
-    L = to_int(payload.get("L") or payload.get("l") or payload.get("length"))
-    W = to_int(payload.get("W") or payload.get("w") or payload.get("width"))
-    H = to_int(payload.get("H") or payload.get("h") or payload.get("height"))
+    dims = payload.get("dimensions") if isinstance(payload.get("dimensions"), dict) else {}
+    L = to_int(
+        payload.get("L") or payload.get("l") or payload.get("length") or dims.get("L") or dims.get("length")
+    )
+    W = to_int(
+        payload.get("W") or payload.get("w") or payload.get("width")  or dims.get("W") or dims.get("width")
+    )
+    H = to_int(
+        payload.get("H") or payload.get("h") or payload.get("height") or dims.get("H") or dims.get("height")
+    )
 
     ppm = _interpolate_price_per_meter(L)
     price_base = round(ppm * L / 1000)
@@ -53,17 +60,13 @@ def compute(payload):
 
     subtotal = price_base + surcharge_width + surcharge_height
 
-    # назва опції кольору може приходити в різних ключах
+    # 3) назва обраної опції кольору може приходити під різними ключами
     pos_name = str(
-        payload.get("position")
-        or payload.get("color")
-        or payload.get("colors")
-        or ""
+        payload.get("position") or payload.get("color") or payload.get("colors") or ""
     ).strip()
+    percent = float(s.positions.get(pos_name, 0.0))  # s.positions — dict name→%
 
-    percent = float(s.positions.get(pos_name, 0.0))
     surcharge_color_amount = subtotal * percent / 100.0
-
     raw_total = subtotal + surcharge_color_amount
     total = (
         _round_nearest_10(raw_total) if s.rounding_mode == "nearest10"
