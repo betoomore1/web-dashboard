@@ -56,3 +56,8 @@ next-env.d.ts
 .env.local
 .venv/
 node_modules/
+/web-dashboard/
+/web-dashboard.git/
+.env.local
+.venv/
+node_modules/
