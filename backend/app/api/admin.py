@@ -7,16 +7,16 @@ from functools import lru_cache
 from pydantic import BaseModel
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
-ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")  # встановиш змінну середовища
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")  # встановиш змінну середовища
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
-def check_token(x_admin_token: Optional[str]):
-    # Dev-режим: якщо токен не заданий у середовищі — не блокуємо.
+def check_token(x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")):
+    # Dev-режим: якщо токен у середовищі НЕ заданий — пропускаємо перевірку
     if not ADMIN_TOKEN:
         return
     if x_admin_token != ADMIN_TOKEN:
-        raise HTTPException(401, "Invalid admin token")
+        raise HTTPException(status_code=401, detail="Invalid or missing admin token")
 
 @router.post("/reload")
 def reload_config(x_admin_token: Optional[str] = Header(None)):
