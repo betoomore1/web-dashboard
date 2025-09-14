@@ -19,9 +19,15 @@ from __future__ import annotations
 
 from configparser import RawConfigParser
 from dataclasses import dataclass, asdict
-import os
+import shutil, os
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+SEED_PATH = Path(__file__).resolve().parents[2] / "config.ini"
+# якщо в ENV вказано /data/... і файл ще не існує — скопіюємо seed
+if str(CONFIG_PATH).startswith("/data") and not CONFIG_PATH.exists() and SEED_PATH.exists():
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(SEED_PATH, CONFIG_PATH)
 
 CONFIG_PATH = Path(os.getenv("CONFIG_PATH") or (Path(__file__).resolve().parents[2] / "config.ini"))
 

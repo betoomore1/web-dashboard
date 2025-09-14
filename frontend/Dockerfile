@@ -1,24 +1,29 @@
 # frontend/Dockerfile
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS builder
+
 WORKDIR /app
-COPY frontend/package.json frontend/package-lock.json* frontend/npm-shrinkwrap.json* ./ 
+
+# копіюємо тільки package.json і lock-файли
+COPY frontend/package*.json ./
+
+# ставимо залежності
 RUN npm ci
 
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY frontend ./
-# забираємо base URL API із ENV під час білду/рану
-ARG NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+# копіюємо код фронтенду
+COPY frontend/ ./
+
+# білд
 RUN npm run build
 
-FROM node:20-alpine AS runner
+# ---- продакшн контейнер ----
+FROM node:20-alpine
+
 WORKDIR /app
-ENV NODE_ENV=production PORT=3000
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-EXPOSE 3000
-CMD ["sh", "-lc", "node node_modules/next/dist/bin/next start -p $PORT"]
+
+# скопіюємо з builder
+COPY --from=builder /app ./
+
+ENV PORT=3000 \
+    HOST=0.0.0.0
+
+CMD ["npm", "start"]

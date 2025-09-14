@@ -1,4 +1,3 @@
-# backend/Dockerfile
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -6,20 +5,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Системні залежності (за потреби додай build-essential, gcc тощо)
+# системні пакети (залиш пустим якщо не треба)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Встановлюємо залежності
+# залежності
 COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Копіюємо код бекенду
+# код бекенду
 COPY backend /app/backend
 
-# За замовчанням Railway задає PORT
+# Railway задає PORT, підставляємо його
 ENV PORT=8000 \
     HOST=0.0.0.0
 
-# Команда запуску
-CMD ["bash", "-lc", "uvicorn backend.app.main:app --host ${HOST} --port ${PORT}"]
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
