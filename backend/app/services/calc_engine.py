@@ -20,7 +20,7 @@ def _round_ceil_10(x: float) -> int:
     return int(ceil(x / 10.0) * 10)
 
 def compute(payload):
-    # нормалізуємо у dict
+    # нормалізуємо в dict
     if hasattr(payload, "model_dump"):
         payload = payload.model_dump()
     elif hasattr(payload, "dict"):
@@ -30,9 +30,16 @@ def compute(payload):
 
     s = load_settings()
 
-    L = int(payload.get("L") or payload.get("l") or 0)
-    W = int(payload.get("W") or payload.get("w") or 0)
-    H = int(payload.get("H") or payload.get("h") or 0)
+    # дістаємо розміри з кількох можливих назв
+    def to_int(x, default=0):
+        try:
+            return int(float(str(x).replace(",", ".")))
+        except Exception:
+            return default
+
+    L = to_int(payload.get("L") or payload.get("l") or payload.get("length"))
+    W = to_int(payload.get("W") or payload.get("w") or payload.get("width"))
+    H = to_int(payload.get("H") or payload.get("h") or payload.get("height"))
 
     ppm = _interpolate_price_per_meter(L)
     price_base = round(ppm * L / 1000)
@@ -46,9 +53,15 @@ def compute(payload):
 
     subtotal = price_base + surcharge_width + surcharge_height
 
-    # назва вибраного кольору може лежати під 'position' / 'color'
-    pos_name = str(payload.get("position") or payload.get("color") or "").strip()
-    percent = float(s.positions.get(pos_name, 0.0))  # ← dict name→%
+    # назва опції кольору може приходити в різних ключах
+    pos_name = str(
+        payload.get("position")
+        or payload.get("color")
+        or payload.get("colors")
+        or ""
+    ).strip()
+
+    percent = float(s.positions.get(pos_name, 0.0))
     surcharge_color_amount = subtotal * percent / 100.0
 
     raw_total = subtotal + surcharge_color_amount
