@@ -134,19 +134,14 @@ def delete_position(name: str):
 class BaseSave(BaseModel):
     rounding: str
     price_high: int | float | str
-    price_low: int | float | str
+    price_low:  int | float | str
 
 @router.post("/base")
 def save_base_route(body: BaseSave):
     try:
-        # у форму можуть прийти строки — нормалізуємо
         ph = int(float(str(body.price_high).replace(',', '.')))
         pl = int(float(str(body.price_low).replace(',', '.')))
         s = save_base(body.rounding, ph, pl)
-        return {
-            "rounding": s.rounding,
-            "price_high": s.price_high,
-            "price_low":  s.price_low,
-        }
+        return {"rounding": s.rounding, "price_high": s.price_high, "price_low": s.price_low}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

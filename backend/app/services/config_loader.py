@@ -65,7 +65,7 @@ class SettingsDTO:
     rounding_mode: str
     price_per_meter_high: int
     price_per_meter_low: int
-    positions: list  # список груп для фронта (dict)
+    positions: dict[str, float]  # список груп для фронта (dict)
 
 # -------------------------- Utils --------------------------- #
 
@@ -351,7 +351,12 @@ def load_settings() -> SettingsDTO:
     groups_ = _read_groups(cfg)
 
     # serializable групи для фронту (dict)
-    positions = [group_to_dict(g) for g in groups_]
+    positions_map: dict[str, float] = {}
+    for g in groups_:
+        if g.id == "colors":
+            for it in g.items:
+                positions_map[it.name] = float(it.value)
+    # і повертати positions=positions_map
 
     return SettingsDTO(
         min_length=vars_.min_length,
@@ -362,5 +367,5 @@ def load_settings() -> SettingsDTO:
         rounding_mode=base_.rounding,
         price_per_meter_high=base_.price_high,
         price_per_meter_low=base_.price_low,
-        positions=positions,
+        positions=positions_map,
     )

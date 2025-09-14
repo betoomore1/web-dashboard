@@ -20,13 +20,16 @@ def _round_ceil_10(x: float) -> int:
     return int(ceil(x / 10.0) * 10)
 
 def compute(payload):
-    # нормалізуємо в dict
+    # нормалізація
     if hasattr(payload, "model_dump"):
         payload = payload.model_dump()
+    elif hasattr(payload, "dict"):
+        payload = payload.dict()
     if isinstance(payload, list):
         raise ValueError("payload must be object, not list")
 
     s = load_settings()
+
     L = int(payload.get("L") or payload.get("l") or 0)
     W = int(payload.get("W") or payload.get("w") or 0)
     H = int(payload.get("H") or payload.get("h") or 0)
@@ -42,7 +45,20 @@ def compute(payload):
         surcharge_height = s.extra_price * (H - s.min_height) * L / 1000
 
     subtotal = price_base + surcharge_width + surcharge_height
-    percent = s.positions.get(payload.position, 0.0)
+
+    # назва опції може приходити в різних ключах
+    pos_key = (
+        payload.get("position")
+        or payload.get("color")
+        or payload.get("colors")
+        or ""
+    )
+    try:
+        pos_name = str(pos_key).strip()
+    except Exception:
+        pos_name = ""
+
+    percent = float(s.positions.get(pos_name, 0.0))
     surcharge_color_amount = subtotal * percent / 100.0
 
     raw_total = subtotal + surcharge_color_amount
