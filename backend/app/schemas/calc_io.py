@@ -1,11 +1,14 @@
 from pydantic import BaseModel, Field, PositiveInt
-from typing import Dict
+from typing import Dict, Optional
 
 class CalcInput(BaseModel):
-    length_mm: PositiveInt = Field(..., description="Довжина виробу, мм")
-    width_mm:  PositiveInt = Field(..., description="Ширина виробу, мм")
-    height_mm: PositiveInt = Field(..., description="Висота виробу, мм")
-    position:  str          = Field(..., description="Назва позиції/кольору з конфігу")
+    L: Optional[int] = None
+    W: Optional[int] = None
+    H: Optional[int] = None
+    length: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    position: Optional[str] = None  # назва вибраної опції кольору
 
 class CalcOutput(BaseModel):
     price_per_meter: float
