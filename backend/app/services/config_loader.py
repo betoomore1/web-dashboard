@@ -37,7 +37,7 @@ class VariableSettings:
 
 @dataclass
 class BaseSettings:
-    rounding: str = "ceil10"       # наприклад: ceil10 / ceil100 / round / floor …
+    rounding: str = "ceil10"       # napр.: ceil10 / ceil100 / round / floor …
     price_high: int = 21101
     price_low: int = 18257
 
@@ -54,6 +54,19 @@ class Group:
     mode: str              # single | multi
     items: List[GroupItem]
 
+# Об'єкт, який очікує calc.py у get_config()
+@dataclass
+class SettingsDTO:
+    min_length: int
+    max_length: int
+    min_width: int
+    min_height: int
+    extra_price: float
+    rounding_mode: str
+    price_per_meter_high: int
+    price_per_meter_low: int
+    positions: list  # список груп для фронта (dict)
+
 # -------------------------- Utils --------------------------- #
 
 def _new_cfg() -> RawConfigParser:
@@ -61,10 +74,12 @@ def _new_cfg() -> RawConfigParser:
     return RawConfigParser(interpolation=None)
 
 def _read_ini() -> RawConfigParser:
-    # ВАЖЛИВО: interpolation=None → інакше '%' в item.2/3 ламає парсер
-    cfg = RawConfigParser(interpolation=None)
+    cfg = RawConfigParser(interpolation=None)  # ВАЖЛИВО: щоб '%' у item.* не ламав парсер
     if CONFIG_PATH.exists():
-        CONFIG_PATH.chmod(0o664)
+        try:
+            CONFIG_PATH.chmod(0o664)
+        except Exception:
+            pass
         cfg.read(CONFIG_PATH, encoding="utf-8")
     return cfg
 
@@ -314,8 +329,7 @@ def _migrate_percent_items(cfg: RawConfigParser) -> None:
                 continue
             raw = (v or "")
             if "%" in raw or "+" in raw or "," in raw:
-                # перепарсимо “по-новому” і запишемо з числом
-                it = _parse_item(raw)
+                it = _parse_item(raw)  # перепарсимо і запишемо числом
                 cfg.set(sect, k, f"{it.name}|{it.op}|{it.value}")
                 changed = True
     if changed:
@@ -323,18 +337,10 @@ def _migrate_percent_items(cfg: RawConfigParser) -> None:
 
 # ----------------------- Публічне API --------------------------- #
 
-def load_settings() -> Dict:
+def load_settings() -> SettingsDTO:
     """
-    Повертає структуру для фронту/калькулятора:
-    {
-      "variables": {
-         "min_length": 500, "max_length": 1000, "min_width": 500, "min_height": 150,
-         "extra_price": 22.0,
-         "rounding": "ceil10",
-         "price_per_meter": {"high": 21101, "low": 18257}
-      },
-      "groups": [ {id, name, mode, items:[{name, op, value}, ...]}, ... ]
-    }
+    Повертає об'єкт, який безпосередньо використовує backend/app/api/calc.py:
+      s.min_length, s.rounding_mode, s.price_per_meter_high/low, s.positions
     """
     cfg = _read_ini()
     _ensure_defaults(cfg)
@@ -344,11 +350,17 @@ def load_settings() -> Dict:
     base_ = _read_base(cfg)
     groups_ = _read_groups(cfg)
 
-    variables_dict = asdict(vars_)
-    variables_dict["rounding"] = base_.rounding
-    variables_dict["price_per_meter"] = {"high": base_.price_high, "low": base_.price_low}
+    # serializable групи для фронту (dict)
+    positions = [group_to_dict(g) for g in groups_]
 
-    return {
-        "variables": variables_dict,
-        "groups": [group_to_dict(g) for g in groups_],
-    }
+    return SettingsDTO(
+        min_length=vars_.min_length,
+        max_length=vars_.max_length,
+        min_width=vars_.min_width,
+        min_height=vars_.min_height,
+        extra_price=vars_.extra_price,
+        rounding_mode=base_.rounding,
+        price_per_meter_high=base_.price_high,
+        price_per_meter_low=base_.price_low,
+        positions=positions,
+    )
