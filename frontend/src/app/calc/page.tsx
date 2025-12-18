@@ -1,3 +1,4 @@
+// frontend/src/app/calc/page.tsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -28,12 +29,9 @@ type CalcOutput = {
 };
 
 /* ================== UI consts ================== */
-/** зменшили висоту рядка ~ на 1/3 */
 const ROW_H = 'h-7'; // 1.75rem ≈ 28px
 const INPUT = `${ROW_H} px-2 py-0 border rounded w-full`;
-/** квадратні кнопки, ширина дорівнює висоті рядка */
 const BTN = `${ROW_H} aspect-square p-0 grid place-items-center border rounded transition-transform active:scale-95`;
-/** не деформуємо іконки */
 const ICON = 'w-4 h-4 object-contain';
 
 const DEFAULTS = { L: 500, W: 500, H: 150 };
@@ -48,7 +46,6 @@ function useFlash(ms = 900) {
   };
   return { on, flash };
 }
-// Формат числа з пробілами між тисячами (uk-UA дає нерозривні — міняємо на звичайні)
 function formatUA(n: number) {
   return n.toLocaleString('uk-UA').replace(/\u202F|\u00A0/g, ' ');
 }
@@ -63,7 +60,7 @@ export default function CalcPage() {
   const [cfg, setCfg] = useState<CalcConfig | null>(null);
 
   // inputs (length як РЯДОК — дозволяє порожній стан)
-  const [lengthStr, setLengthStr] = useState<string>(''); // пусто за замовчуванням
+  const [lengthStr, setLengthStr] = useState<string>(''); // порожньо, доки не введуть
   const [width, setWidth] = useState<number>(DEFAULTS.W);
   const [height, setHeight] = useState<number>(DEFAULTS.H);
   const [position, setPosition] = useState<string>('');
@@ -72,7 +69,7 @@ export default function CalcPage() {
   const [out, setOut] = useState<CalcOutput | null>(null);
   const [err, setErr] = useState<string>('');
 
-  // статус тексту знизу: плавний перехід через "порожньо"
+  // плавна індикація статусу
   const [status, setStatus] = useState<'empty' | 'needLength' | 'price'>('needLength');
 
   // refs & flash
@@ -88,17 +85,15 @@ export default function CalcPage() {
         const keys = Object.keys(c.positions ?? {});
         const base = keys.find((k) => k === BASE_KEY) || keys[0] || '';
         setPosition(base);
-        setLengthStr(''); // довжина лишається пустою
+        setLengthStr('');
       } catch (e: any) {
         setErr(String(e?.message || e));
       }
     })();
-
-    // курсор одразу в полі L
     setTimeout(() => lengthRef.current?.focus(), 0);
   }, []);
 
-  /* ---------- auto compute (debounce) ---------- */
+  /* ---------- авто-обчислення (debounce) ---------- */
   useEffect(() => {
     setErr('');
     const handle = setTimeout(async () => {
@@ -109,17 +104,17 @@ export default function CalcPage() {
       }
       try {
         const res = await api.post<CalcOutput>('/api/calc/compute', {
-          L: L,            // було length_mm
-          W: width,        // було width_mm
-          H: height,       // було height_mm
-          position,        // назва вибраної опції
+          L,
+          W: width,
+          H: height,
+          position,
         });
         setOut(res);
       } catch (e: any) {
         setErr(String(e?.message || e));
         setOut(null);
       }
-    }, 1000); // ↑ зробив більшу паузу перед підрахунком
+    }, 800);
 
     return () => clearTimeout(handle);
   }, [lengthStr, width, height, position]);
@@ -128,28 +123,37 @@ export default function CalcPage() {
   useEffect(() => {
     let next: typeof status = 'needLength';
     if (lengthStr && Number(lengthStr) > 0 && out) next = 'price';
-
     if (next !== status) {
-      setStatus('empty'); // на мить ховаємо все
-      const t = setTimeout(() => setStatus(next), 180); // і показуємо нове
+      setStatus('empty');
+      const t = setTimeout(() => setStatus(next), 160);
       return () => clearTimeout(t);
     }
   }, [lengthStr, out, status]);
 
+  /* ---------- піднімати липку панель над моб. клавіатурою ---------- */
+  useEffect(() => {
+    const vv = (window as any).visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      const extra = Math.max(0, (vv.height + vv.offsetTop) - window.innerHeight);
+      document.documentElement.style.setProperty('--vv-bottom', `${extra}px`);
+    };
+    vv.addEventListener('resize', handler);
+    handler();
+    return () => vv.removeEventListener('resize', handler);
+  }, []);
+
   /* ================== UI ================== */
   return (
     <main className="p-6 flex justify-center">
-      <div className="w-full max-w-[418px] mx-auto px-3">
-        {/* Шапка: заголовок + індикатор успіху + Admin */}
+      <div className="w-full max-w-[418px] mx-auto px-3 pb-28">
+        {/* Шапка */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-semibold">Калькулятор</h1>
-
-            {/* Індикатор «успішно» (замість плаваючого вгорі) */}
             <span
               className={
-                'inline-flex h-5 w-5 rounded-full border-2 border-black bg-white ' +
-                'items-center justify-center overflow-hidden transition-all duration-200 ease-out ' +
+                'inline-flex h-5 w-5 rounded-full border-2 border-black bg-white items-center justify-center overflow-hidden transition-all duration-200 ' +
                 (ok.on ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none')
               }
               title="Готово"
@@ -158,22 +162,20 @@ export default function CalcPage() {
               <img src="/icons/check.png" alt="ok" className="w-5 h-5 object-contain" />
             </span>
           </div>
-
           <a
             href="/admin"
             className="text-sm px-3 py-1 border rounded hover:bg-gray-50 active:scale-95 transition"
-            title="Перейти до адмінки"
           >
             Admin
           </a>
         </div>
 
         <div className="mb-6 border rounded-2xl p-4">
-          <h2 className="text-lg font-medium mb-2">Розміри умивальника в &quot;мм&quot;</h2>
+          <h2 className="text-lg font-medium mb-3">Розміри умивальника в &quot;мм&quot;</h2>
 
           {/* ---------- L ---------- */}
           <div className="mb-3">
-            <div className="flex items-center gap-2">
+            <div className="row">
               <img src="/icons/length.png" alt="L" className={ICON} />
               <input
                 ref={lengthRef}
@@ -186,7 +188,7 @@ export default function CalcPage() {
                 onBlur={ok.flash}
               />
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   const v = Number(lengthStr || 0) + 10;
                   setLengthStr(String(v));
@@ -197,7 +199,7 @@ export default function CalcPage() {
                 <img src="/icons/increase.png" alt="+" className={ICON} />
               </button>
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   const v = Math.max(0, Number(lengthStr || 0) - 10);
                   setLengthStr(String(v));
@@ -208,8 +210,8 @@ export default function CalcPage() {
                 <img src="/icons/decrease.png" alt="-" className={ICON} />
               </button>
               <button
-                className={BTN}
-                title="Скинути ВСЕ до початкового стану"
+                className={`step-btn ${BTN}`}
+                title="Скинути всі поля"
                 onClick={() => {
                   setLengthStr('');
                   setWidth(DEFAULTS.W);
@@ -231,7 +233,7 @@ export default function CalcPage() {
 
           {/* ---------- W ---------- */}
           <div className="mb-3">
-            <div className="flex items-center gap-2">
+            <div className="row">
               <img src="/icons/width.png" alt="W" className={ICON} />
               <input
                 type="number"
@@ -244,7 +246,7 @@ export default function CalcPage() {
                 }}
               />
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   setWidth(width + 10);
                   ok.flash();
@@ -254,7 +256,7 @@ export default function CalcPage() {
                 <img src="/icons/increase.png" alt="+" className={ICON} />
               </button>
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   setWidth(Math.max(1, width - 10));
                   ok.flash();
@@ -264,7 +266,7 @@ export default function CalcPage() {
                 <img src="/icons/decrease.png" alt="-" className={ICON} />
               </button>
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   setWidth(DEFAULTS.W);
                   ok.flash();
@@ -278,7 +280,7 @@ export default function CalcPage() {
 
           {/* ---------- H ---------- */}
           <div className="mb-3">
-            <div className="flex items-center gap-2">
+            <div className="row">
               <img src="/icons/height.png" alt="H" className={ICON} />
               <input
                 type="number"
@@ -291,7 +293,7 @@ export default function CalcPage() {
                 }}
               />
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   setHeight(height + 10);
                   ok.flash();
@@ -301,7 +303,7 @@ export default function CalcPage() {
                 <img src="/icons/increase.png" alt="+" className={ICON} />
               </button>
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   setHeight(Math.max(1, height - 10));
                   ok.flash();
@@ -311,7 +313,7 @@ export default function CalcPage() {
                 <img src="/icons/decrease.png" alt="-" className={ICON} />
               </button>
               <button
-                className={BTN}
+                className={`step-btn ${BTN}`}
                 onClick={() => {
                   setHeight(DEFAULTS.H);
                   ok.flash();
@@ -326,7 +328,7 @@ export default function CalcPage() {
           {/* ---------- Колір (радіо) ---------- */}
           <fieldset className="mb-3 pl-6">
             <legend className="text-sm font-medium mb-1">Колір:</legend>
-            <div className="space-y-2">
+            <div className="colors-grid">
               {Object.keys(cfg?.positions ?? {}).map((k) => (
                 <label key={k} className="flex items-center gap-2">
                   <input
@@ -343,9 +345,9 @@ export default function CalcPage() {
           </fieldset>
 
           {/* ---------- Дії ---------- */}
-          <div className="mt-2 flex flex-col items-center gap-2 min-[440px]:flex-row min-[440px]:justify-center">
+          <div className="actions-grid">
             <button
-              className="w-full min-[440px]:w-auto whitespace-nowrap px-4 py-2 border rounded transition active:scale-95"
+              className="px-4 py-2 border rounded transition active:scale-95"
               onClick={async () => {
                 try {
                   const text = await navigator.clipboard.readText();
@@ -362,7 +364,7 @@ export default function CalcPage() {
             </button>
 
             <button
-              className="w-full min-[440px]:w-auto whitespace-nowrap px-4 py-2 border rounded transition active:scale-95"
+              className="px-4 py-2 border rounded transition active:scale-95 disabled:opacity-50"
               disabled={!out}
               onClick={async () => {
                 if (!out) return;
@@ -373,33 +375,114 @@ export default function CalcPage() {
               Скопіювати вартість
             </button>
           </div>
-
-          {/* ---------- Підсумок/статус (без «карти результатів») ---------- */}
-          <div className="mt-3">
-            <div className="relative h-8 text-center overflow-hidden" aria-live="polite">
-              {/* "Введіть довжину!" */}
-              <span
-                className={`absolute inset-0 flex items-center justify-center text-red-600 font-bold text-xl transition-opacity duration-200 ${
-                  status === 'needLength' ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                Введіть довжину!
-              </span>
-
-              {/* "Вартість виробу…" — показуємо лише коли Є out */}
-              <span
-                className={`absolute inset-0 flex items-center justify-center text-emerald-700 font-bold text-xl transition-opacity duration-200 ${
-                  status === 'price' && out ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                {out && <>Вартість виробу - {formatUA(out.price_total)} грн</>}
-              </span>
-            </div>
-
-            {err && <p className="w-full text-center text-red-600 text-sm mt-2">{err}</p>}
-          </div>
         </div>
       </div>
+
+      {/* Липка панель ціни (видима завжди, вміст змінюється) */}
+      <div className="price-sticky">
+        <div className="price-inner">
+          {/* need length */}
+          <span
+            className={`transition-opacity duration-200 ${
+              status === 'needLength' ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            Введіть довжину!
+          </span>
+
+          {/* price */}
+          <span
+            className={`transition-opacity duration-200 ${
+              status === 'price' && out ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            {out && <>Вартість виробу — {formatUA(out.price_total)} грн</>}
+          </span>
+        </div>
+      </div>
+
+      {/* помилки API (не блокує лейаут) */}
+      {err && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] z-50">
+          <p className="bg-red-50 text-red-700 border border-red-200 rounded px-3 py-1 text-sm shadow">
+            {err}
+          </p>
+        </div>
+      )}
+
+      {/* локальні стилі для нових класів */}
+      <style jsx global>{`
+        /* рядок з інпутом та трьома кнопками */
+        .row {
+          display: grid;
+          grid-template-columns: 20px 1fr repeat(3, 28px);
+          align-items: center;
+          gap: 8px;
+        }
+        /* універсальний стиль для +/-/× */
+        .step-btn {
+          display: grid;
+          place-items: center;
+          border-radius: 6px;
+        }
+
+        /* сітка кольорів: у 2 колонки на вузьких екранах, далі — в один стовпчик */
+        .colors-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        @media (max-width: 420px) {
+          .colors-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        @media (min-width: 421px) {
+          .colors-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* дві нижні кнопки — у ряд на широких, у стовпчик на вузьких */
+        .actions-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          margin-top: 10px;
+        }
+        @media (min-width: 440px) {
+          .actions-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        /* липка панель ціни унизу екрана */
+        .price-sticky {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: max(10px, calc(env(safe-area-inset-bottom) + var(--vv-bottom, 0px)));
+          z-index: 40;
+          pointer-events: none; /* щоб не перекривала натискання по UI */
+        }
+        .price-inner {
+          pointer-events: auto;
+          width: fit-content;
+          max-width: calc(100vw - 24px);
+          margin: 0 auto;
+          background: #0f766e0d;            /* легенький бірюзовий фон */
+          border: 1px solid #0f766e33;
+          color: #065f46;
+          backdrop-filter: blur(4px);
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-weight: 700;
+          text-align: center;
+          box-shadow:
+            0 6px 20px rgba(0,0,0,.08),
+            0 2px 6px rgba(0,0,0,.06);
+        }
+      `}</style>
     </main>
   );
 }
