@@ -55,14 +55,4 @@ body {
     grid-template-columns: 1fr 1fr;
     gap: 8px 12px;
   }
-
-  /* панель з ціною завжди видима внизу */
-  .price-sticky {
-    position: sticky;
-    bottom: max(0px, env(keyboard-inset-height, 0px));
-    z-index: 50;
-    background: #fff;
-    padding: 12px 16px;
-    box-shadow: 0 -6px 12px rgba(0, 0, 0, 0.08);
-  }
 }
