@@ -64,5 +64,6 @@ body {
 
 /* щоб липка панель не перекривалась клавіатурою на мобіле */
 .price-sticky {
-  margin-bottom: var(--vv-bottom, 0);
+  position: sticky;
+  bottom: max(0px, env(keyboard-inset-height, 0px));
 }
