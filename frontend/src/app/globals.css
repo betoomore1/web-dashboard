@@ -49,6 +49,13 @@ body {
     gap: 4px;
   }
 
+  /* список кольорів у дві колонки */
+  .colors-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+  }
+
   /* панель з ціною завжди видима внизу */
   @media (max-width: 480px) {
   .price-sticky {
