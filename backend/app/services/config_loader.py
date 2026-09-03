@@ -36,13 +36,13 @@ class VariableSettings:
     max_length: int = 1000
     min_width: int = 500
     min_height: int = 150
-    extra_price: float = 22.0
+    extra_price: float = 24.27
 
 @dataclass
 class BaseSettings:
     rounding: str = "ceil10"       # napр.: ceil10 / ceil100 / round / floor …
-    price_high: int = 21101
-    price_low: int = 18257
+    price_high: int = 23860
+    price_low: int = 20644
 
 @dataclass
 class GroupItem:
@@ -123,7 +123,7 @@ def _read_variables(cfg: RawConfigParser) -> VariableSettings:
         max_length=_get_int(cfg, s, "max_length", 1000),
         min_width=_get_int(cfg, s, "min_width", 500),
         min_height=_get_int(cfg, s, "min_height", 150),
-        extra_price=_get_float(cfg, s, "extra_price", 22.0),
+        extra_price=_get_float(cfg, s, "extra_price", 24.27),
     )
 
 def _read_base(cfg: RawConfigParser) -> BaseSettings:
@@ -131,8 +131,8 @@ def _read_base(cfg: RawConfigParser) -> BaseSettings:
     _ensure(cfg, s)
     return BaseSettings(
         rounding=_get_str(cfg, s, "rounding", "ceil10"),
-        price_high=_get_int(cfg, s, "price_high", 21101),
-        price_low=_get_int(cfg, s, "price_low", 18257),
+        price_high=_get_int(cfg, s, "price_high", 23860),
+        price_low=_get_int(cfg, s, "price_low", 20644),
     )
 
 def _parse_item(raw: str) -> GroupItem:
@@ -300,14 +300,14 @@ def _ensure_defaults(cfg: RawConfigParser) -> None:
     if not cfg.has_option("variables", "min_height"):
         cfg.set("variables", "min_height", "150")
     if not cfg.has_option("variables", "extra_price"):
-        cfg.set("variables", "extra_price", "22")
+        cfg.set("variables", "extra_price", "24.27")
 
     if not cfg.has_option("base", "rounding"):
         cfg.set("base", "rounding", "ceil10")
     if not cfg.has_option("base", "price_high"):
-        cfg.set("base", "price_high", "21101")
+        cfg.set("base", "price_high", "23860")
     if not cfg.has_option("base", "price_low"):
-        cfg.set("base", "price_low", "18257")
+        cfg.set("base", "price_low", "20644")
 
     # дефолтна група “Колір”, якщо її не існує
     gsect = "group:colors"
